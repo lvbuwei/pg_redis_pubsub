@@ -17,6 +17,6 @@ AS '$libdir/redis'
 LANGUAGE C;
 
 CREATE FUNCTION redis_publish(channel text, message text)
-RETURNS boolean
+RETURNS int
 AS '$libdir/redis'
 LANGUAGE C;

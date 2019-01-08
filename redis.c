@@ -112,8 +112,13 @@ redis_publish(PG_FUNCTION_ARGS)
         freeReplyObject(reply);
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("%s", err)));
     }
-
-    PG_RETURN_BOOL(true);
+    if (reply->type == REDIS_REPLY_INTEGER) {
+        int result;
+        result = reply->integer;
+        freeReplyObject(reply);
+        PG_RETURN_INT32(result);
+    }
+    PG_RETURN_INT32(0);
 }
 
 /**
