@@ -20,3 +20,18 @@ CREATE FUNCTION redis_publish(channel text, message text)
 RETURNS int
 AS '$libdir/redis'
 LANGUAGE C;
+
+CREATE FUNCTION redis_lpush(channel text, message text)
+RETURNS int
+AS '$libdir/redis'
+LANGUAGE C;
+
+CREATE FUNCTION redis_llen(channel text)
+RETURNS int
+AS '$libdir/redis'
+LANGUAGE C;
+
+CREATE FUNCTION redis_sadd(channel text,message text)
+RETURNS int
+AS '$libdir/redis'
+LANGUAGE C;
