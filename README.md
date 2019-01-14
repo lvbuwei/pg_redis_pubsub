@@ -1,3 +1,11 @@
+# 增加了一些函数
+
+因为原作者写的扩展只有pub和sub两个功能，在使用的过程中，感觉不够，因此fock了原作者的代码，在此基本上增加了自己需要的函数。
+在此，感谢非常原作者的贡献。
+
+增加的函数,可以看redis.sql文件。
+
+
 # Redis Publish PostgreSQL Extension
 
 This PostgreSQL extension allows you to connect to Redis and publish messages on a Redis channel from PostgreSQL.
