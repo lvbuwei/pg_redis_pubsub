@@ -78,6 +78,132 @@ redis_disconnect(PG_FUNCTION_ARGS)
 }
 
 /**
+ * set a message.
+**/
+PG_FUNCTION_INFO_V1(redis_set);
+extern Datum redis_set(PG_FUNCTION_ARGS);
+Datum
+redis_set(PG_FUNCTION_ARGS)
+{
+    text *pchannel = PG_GETARG_TEXT_P(0);
+    text *pmessage = PG_GETARG_TEXT_P(1);
+    char *channel = text_to_cstring(pchannel);
+    char *message = text_to_cstring(pmessage);
+
+    redisReply *reply;
+
+    if (ctx == NULL || ctx->err) {
+        ctx = redisConnect(redisHost, redisPort);
+        if (ctx == NULL || ctx->err) {
+            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("Cannot connect to redis://%s:%d.", redisHost, redisPort)));
+        }
+    }
+
+    reply = redisCommand(ctx, "SET %s %s", channel, message);
+
+    if (reply == NULL) {
+        char *err = pstrdup(ctx->errstr);
+        redisFree(ctx);
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("%s", err)));
+    }
+
+    if (reply->type == REDIS_REPLY_ERROR) {
+        char *err = pstrdup(reply->str);
+        freeReplyObject(reply);
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("%s", err)));
+    }
+    char *result = pstrdup(reply->str);
+    PG_RETURN_TEXT_P(cstring_to_text(result));
+    freeReplyObject(reply);
+}
+
+/**
+ * setex a message.
+**/
+PG_FUNCTION_INFO_V1(redis_setex);
+extern Datum redis_setex(PG_FUNCTION_ARGS);
+Datum
+redis_setex(PG_FUNCTION_ARGS)
+{
+    text *pchannel = PG_GETARG_TEXT_P(0);
+    int timeout = PG_GETARG_INT32(1);
+    text *pmessage = PG_GETARG_TEXT_P(2);
+
+    char *channel = text_to_cstring(pchannel);
+    char *message = text_to_cstring(pmessage);
+
+    redisReply *reply;
+
+    if (ctx == NULL || ctx->err) {
+        ctx = redisConnect(redisHost, redisPort);
+        if (ctx == NULL || ctx->err) {
+            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("Cannot connect to redis://%s:%d.", redisHost, redisPort)));
+        }
+    }
+
+    reply = redisCommand(ctx, "SETEX %s %d %s", channel, timeout, message);
+
+    if (reply == NULL) {
+        char *err = pstrdup(ctx->errstr);
+        redisFree(ctx);
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("%s", err)));
+    }
+
+    if (reply->type == REDIS_REPLY_ERROR) {
+        char *err = pstrdup(reply->str);
+        freeReplyObject(reply);
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("%s", err)));
+    }
+
+    char *result = reply->str;
+    PG_RETURN_TEXT_P(cstring_to_text(result));
+    freeReplyObject(reply);
+}
+
+/**
+ * get a message.
+**/
+PG_FUNCTION_INFO_V1(redis_get);
+extern Datum redis_get(PG_FUNCTION_ARGS);
+Datum
+redis_get(PG_FUNCTION_ARGS)
+{
+    text *pchannel = PG_GETARG_TEXT_P(0);
+
+    char *channel = text_to_cstring(pchannel);
+
+    redisReply *reply;
+
+    if (ctx == NULL || ctx->err) {
+        ctx = redisConnect(redisHost, redisPort);
+        if (ctx == NULL || ctx->err) {
+            ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("Cannot connect to redis://%s:%d.", redisHost, redisPort)));
+        }
+    }
+
+    reply = redisCommand(ctx, "GET %s", channel);
+
+    if (reply == NULL) {
+        char *err = pstrdup(ctx->errstr);
+        redisFree(ctx);
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("%s", err)));
+    }
+
+    if (reply->type == REDIS_REPLY_ERROR) {
+        char *err = pstrdup(reply->str);
+        freeReplyObject(reply);
+        ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("%s", err)));
+    }
+    if (reply->type == REDIS_REPLY_NIL) {
+        freeReplyObject(reply);
+        PG_RETURN_NULL();
+    }
+    char *result = reply->str;
+    PG_RETURN_TEXT_P(cstring_to_text(result));
+    freeReplyObject(reply);
+}
+
+/**
  * Publish a message to the channel.
 **/
 PG_FUNCTION_INFO_V1(redis_publish);
@@ -112,13 +238,10 @@ redis_publish(PG_FUNCTION_ARGS)
         freeReplyObject(reply);
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("%s", err)));
     }
-    if (reply->type == REDIS_REPLY_INTEGER) {
-        int result;
-        result = reply->integer;
-        freeReplyObject(reply);
-        PG_RETURN_INT32(result);
-    }
-    PG_RETURN_INT32(0);
+    int result;
+    result = reply->integer;
+    freeReplyObject(reply);
+    PG_RETURN_INT32(result);
 }
 
 /**
@@ -156,13 +279,11 @@ redis_lpush(PG_FUNCTION_ARGS)
         freeReplyObject(reply);
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("%s", err)));
     }
-    if (reply->type == REDIS_REPLY_INTEGER) {
-        int result;
-        result = reply->integer;
-        freeReplyObject(reply);
-        PG_RETURN_INT32(result);
-    }
-    PG_RETURN_INT32(0);
+
+    int result;
+    result = reply->integer;
+    freeReplyObject(reply);
+    PG_RETURN_INT32(result);
 }
 
 /**
@@ -198,13 +319,10 @@ redis_llen(PG_FUNCTION_ARGS)
         freeReplyObject(reply);
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("%s", err)));
     }
-    if (reply->type == REDIS_REPLY_INTEGER) {
-        int result;
-        result = reply->integer;
-        freeReplyObject(reply);
-        PG_RETURN_INT32(result);
-    }
-    PG_RETURN_INT32(0);
+    int result;
+    result = reply->integer;
+    freeReplyObject(reply);
+    PG_RETURN_INT32(result);
 }
 
 /**
@@ -242,13 +360,10 @@ redis_sadd(PG_FUNCTION_ARGS)
         freeReplyObject(reply);
         ereport(ERROR, (errcode(ERRCODE_INVALID_PARAMETER_VALUE), errmsg("%s", err)));
     }
-    if (reply->type == REDIS_REPLY_INTEGER) {
-        int result;
-        result = reply->integer;
-        freeReplyObject(reply);
-        PG_RETURN_INT32(result);
-    }
-    PG_RETURN_INT32(0);
+    int result;
+    result = reply->integer;
+    freeReplyObject(reply);
+    PG_RETURN_INT32(result);
 }
 
 /**

@@ -35,3 +35,20 @@ CREATE FUNCTION redis_sadd(channel text,message text)
 RETURNS int
 AS '$libdir/redis'
 LANGUAGE C;
+
+CREATE FUNCTION redis_set(channel text,message text)
+RETURNS TEXT
+AS '$libdir/redis'
+LANGUAGE C;
+
+CREATE FUNCTION redis_get(channel text)
+RETURNS TEXT
+AS '$libdir/redis'
+LANGUAGE C;
+
+CREATE FUNCTION redis_setex(channel text,timeout int,message text)
+RETURNS TEXT
+AS '$libdir/redis'
+LANGUAGE C;
+
+
